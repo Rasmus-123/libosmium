@@ -1,5 +1,5 @@
-#ifndef OSMIUM_IO_DETAIL_PROTOBUF_EXTENDED_TAGS_HPP
-#define OSMIUM_IO_DETAIL_PROTOBUF_EXTENDED_TAGS_HPP
+#ifndef OSMIUM_IO_DETAIL_PROTOBUF_TAGS_HPP
+#define OSMIUM_IO_DETAIL_PROTOBUF_TAGS_HPP
 
 /*
 
@@ -35,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 #include <protozero/types.hpp>
 
-namespace osmium::extended {
+namespace osmium {
 
     namespace io {
 

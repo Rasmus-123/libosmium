@@ -438,42 +438,13 @@ namespace osmium {
                         mark_header_as_done();
                         if (read_types() & osmium::osm_entity_bits::area) 
                         {
-                            if constexpr (debug_builder) { std::cout << __LINE__ << ": New AreaBuilder" << std::endl; }
                             maybe_new_buffer(osmium::item_type::area);
                             m_area_builder.reset(new osmium::builder::AreaBuilder{ buffer() });
                             m_area_builder->set_user(init_object(m_area_builder->object(), attrs));
                         }
                         return;
                     }
-
-                    /*
-                    if (!std::strcmp(element, "outer_ring")) {
-                        std::cout << "Data_Level: Outer_Ring" << std::endl;
-                        m_context_stack.push_back(context::outer_ring);
-                        mark_header_as_done();
-                        if (read_types() & osmium::osm_entity_bits::area) 
-                        {
-                            if constexpr(debug_builder){std::cout << __LINE__ << ": New OuterRingBuilder" << std::endl;}
-                            maybe_new_buffer(osmium::item_type::outer_ring);
-                            m_oring_builder.reset(new osmium::builder::OuterRingBuilder{ buffer() });
-                        }
-                        return;
-                    }
-
-                    if (!std::strcmp(element, "inner_ring")) {
-                        std::cout << "Data_Level: Inner_Ring" << std::endl;
-                        m_context_stack.push_back(context::inner_ring);
-                        mark_header_as_done();
-                        if (read_types() & osmium::osm_entity_bits::area) 
-                        {
-                            if constexpr(debug_builder){std::cout << __LINE__ << ": New InnerRingBuilder" << std::endl;}
-                            maybe_new_buffer(osmium::item_type::inner_ring);
-                            m_iring_builder.reset(new osmium::builder::InnerRingBuilder{ buffer() });
-                        }
-                        return;
-                    }
-                    */
-
+                    
                     if (in_change_section) {
                         throw xml_error{"create/modify/delete sections can only contain nodes, ways, relations and areas"};
                     }
@@ -649,11 +620,7 @@ namespace osmium {
                                         throw std::runtime_error("m_area_builder is nullptr");
                                     }
 
-                                    if constexpr(debug_builder){std::cout << __LINE__ << ": Reset InnerRingBuilder" << std::endl;}
-                                    m_iring_builder.reset();
-                                    if constexpr(debug_builder){std::cout << __LINE__ << ": Reset OuterRingBuilder" << std::endl;}
                                     m_oring_builder.reset();
-                                    if constexpr(debug_builder){std::cout << __LINE__ << ": GetTag AreaBuilder" << std::endl;}
                                     get_tag(*m_area_builder, attrs);
                                 }
                             }
@@ -675,7 +642,6 @@ namespace osmium {
 
                                     if (!m_oring_builder) 
                                     {
-                                        if constexpr(debug_builder){std::cout << __LINE__ << ": New OuterRingBuilder" << std::endl;}
                                         m_oring_builder.reset(new osmium::builder::OuterRingBuilder{ *m_area_builder });
                                     }
 
@@ -723,7 +689,6 @@ namespace osmium {
 
                                     if (!m_iring_builder) 
                                     {
-                                        if constexpr(debug_builder){std::cout << __LINE__ << ": New InnerRingBuilder" << std::endl;}
                                         m_iring_builder.reset(new osmium::builder::InnerRingBuilder{ *m_area_builder });
                                     }
 
@@ -869,13 +834,6 @@ namespace osmium {
                         case context::area:
                             assert(!std::strcmp(element, "area"));
                             if (read_types() & osmium::osm_entity_bits::area) {
-                                if constexpr(debug_builder){std::cout << __LINE__ << ": Reset TagListBuilder" << std::endl;}
-                                m_tl_builder.reset();
-                                if constexpr(debug_builder){std::cout << __LINE__ << ": Reset OuterRingBuilder" << std::endl;}
-                                m_oring_builder.reset();
-                                if constexpr(debug_builder){std::cout << __LINE__ << ": Reset InnerRingBuilder" << std::endl;}
-                                m_iring_builder.reset();
-                                if constexpr(debug_builder){std::cout << __LINE__ << ": Reset AreaBuilder" << std::endl;}
                                 m_area_builder.reset();
                                 buffer().commit();
                                 flush_nested_buffer();
@@ -886,9 +844,7 @@ namespace osmium {
                             assert(!std::strcmp(element, "outer_ring"));
                             if (read_types() & osmium::osm_entity_bits::area)
                             {
-                                if constexpr(debug_builder){std::cout << __LINE__ << ": Reset InnerRingBuilder" << std::endl;}
                                 m_iring_builder.reset();
-                                if constexpr(debug_builder){std::cout << __LINE__ << ": Reset OuterRingBuilder" << std::endl;}
                                 m_oring_builder.reset();
                             }
                             break;
@@ -896,7 +852,6 @@ namespace osmium {
                             assert(!std::strcmp(element, "inner_ring"));
                             if (read_types() & osmium::osm_entity_bits::area) 
                             {
-                                if constexpr(debug_builder){std::cout << __LINE__ << ": Reset InnerRingBuilder" << std::endl;}
                                 m_iring_builder.reset();
                             }
                             break;
