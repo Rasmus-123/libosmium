@@ -754,6 +754,90 @@ namespace osmium {
                     }
                 }
 
+                void area(const osmium::Area& area)
+                {
+                    switch_primitive_block_type(OSMFormat::PrimitiveGroup::repeated_Area_areas);
+                    protozero::pbf_builder<OSMFormat::Area> pbf_area{ m_primitive_block->group(), OSMFormat::PrimitiveGroup::repeated_Area_areas };
+
+                    pbf_area.add_int64(OSMFormat::Area::required_int64_id, area.id());
+                    add_meta(area, pbf_area);
+
+                    for (const auto& oring : area.outer_rings())
+                    {
+                        outer_ring(area, oring, pbf_area);
+                    }
+                }
+
+            private:
+                void outer_ring(const osmium::Area& area, const osmium::OuterRing& oring, protozero::pbf_builder<OSMFormat::Area>& pbf_area)
+                {
+                    protozero::pbf_builder<OSMFormat::OuterRing> pbf_oring{pbf_area, OSMFormat::Area::repeated_OuterRing_outerrings};
+
+                    // Refs
+                    {
+	                    osmium::DeltaEncode<object_id_type, int64_t> delta_id;
+	                    protozero::packed_field_sint64 field{ pbf_oring, protozero::pbf_tag_type(OSMFormat::OuterRing::packed_sint64_refs) };
+	                    for (const auto& node_ref : oring) {
+	                        field.add_element(delta_id.update(node_ref.ref()));
+	                    }
+                    }
+
+                    // Lons
+                    {
+                        osmium::DeltaEncode<int64_t, int64_t> delta;
+                        protozero::packed_field_sint64 field{ pbf_oring, protozero::pbf_tag_type(OSMFormat::OuterRing::packed_sint64_lon) };
+                        for (const auto& node_ref : oring) {
+                            field.add_element(delta.update(node_ref.location().x()));
+                        }
+                    }
+
+                    // Lats
+                    {
+                        osmium::DeltaEncode<int64_t, int64_t> delta;
+                        protozero::packed_field_sint64 field{ pbf_oring, protozero::pbf_tag_type(OSMFormat::OuterRing::packed_sint64_lat) };
+                        for (const auto& node_ref : oring) {
+                            field.add_element(delta.update(node_ref.location().y()));
+                        }
+                    }
+
+                    for (const auto& iring : area.inner_rings(oring))
+                    {
+                        inner_ring(iring, pbf_oring);
+                    }
+                }
+
+                void inner_ring(const osmium::InnerRing& iring, protozero::pbf_builder<OSMFormat::OuterRing>& pbf_oring)
+                {
+                    protozero::pbf_builder<OSMFormat::InnerRing> pbf_iring{ pbf_oring, OSMFormat::OuterRing::repeated_InnerRing_innerrings };
+
+                    // Refs
+                    {
+                        osmium::DeltaEncode<object_id_type, int64_t> delta_id;
+                        protozero::packed_field_sint64 field{ pbf_iring, protozero::pbf_tag_type(OSMFormat::InnerRing::packed_sint64_refs) };
+                        for (const auto& node_ref : iring) {
+                            field.add_element(delta_id.update(node_ref.ref()));
+                        }
+                    }
+
+                    // Lons
+                    {
+                        osmium::DeltaEncode<int64_t, int64_t> delta;
+                        protozero::packed_field_sint64 field{ pbf_iring, protozero::pbf_tag_type(OSMFormat::InnerRing::packed_sint64_lon) };
+                        for (const auto& node_ref : iring) {
+                            field.add_element(delta.update(node_ref.location().x()));
+                        }
+                    }
+
+                    // Lats
+                    {
+                        osmium::DeltaEncode<int64_t, int64_t> delta;
+                        protozero::packed_field_sint64 field{ pbf_iring, protozero::pbf_tag_type(OSMFormat::InnerRing::packed_sint64_lat) };
+                        for (const auto& node_ref : iring) {
+                            field.add_element(delta.update(node_ref.location().y()));
+                        }
+                    }
+                }
+
             }; // class PBFOutputFormat
 
             // we want the register_output_format() function to run, setting

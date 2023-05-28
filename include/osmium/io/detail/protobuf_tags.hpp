@@ -1,5 +1,5 @@
-#ifndef OSMIUM_IO_DETAIL_PROTOBUF_TAGS_HPP
-#define OSMIUM_IO_DETAIL_PROTOBUF_TAGS_HPP
+#ifndef OSMIUM_IO_DETAIL_PROTOBUF_EXTENDED_TAGS_HPP
+#define OSMIUM_IO_DETAIL_PROTOBUF_EXTENDED_TAGS_HPP
 
 /*
 
@@ -35,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 #include <protozero/types.hpp>
 
-namespace osmium {
+namespace osmium::extended {
 
     namespace io {
 
@@ -101,7 +101,8 @@ namespace osmium {
                     optional_DenseNodes_dense     = 2,
                     repeated_Way_ways             = 3,
                     repeated_Relation_relations   = 4,
-                    repeated_ChangeSet_changesets = 5
+                    repeated_ChangeSet_changesets = 5,
+                    repeated_Area_areas           = 6
                 };
 
                 enum class StringTable : protozero::pbf_tag_type {
@@ -161,6 +162,27 @@ namespace osmium {
                     packed_int32_roles_sid  =  8,
                     packed_sint64_memids    =  9,
                     packed_MemberType_types = 10
+                };
+
+                enum class InnerRing : protozero::pbf_tag_type {
+                    packed_sint64_refs = 1,
+                    packed_sint64_lat  = 2,
+                    packed_sint64_lon  = 3
+                };
+
+                enum class OuterRing : protozero::pbf_tag_type {
+                    packed_sint64_refs = 1,
+                    packed_sint64_lat  = 2,
+                    packed_sint64_lon  = 3,
+                    repeated_InnerRing_innerrings = 4
+                };
+
+                enum class Area : protozero::pbf_tag_type {
+                    required_int64_id               =  1,
+                    packed_uint32_keys              =  2,
+                    packed_uint32_vals              =  3,
+                    optional_Info_info              =  4,
+                    repeated_OuterRing_outerrings   =  5
                 };
 
             } // namespace OSMFormat

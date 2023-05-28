@@ -365,6 +365,94 @@ namespace osmium {
                     *m_out += "</relation>\n";
                 }
 
+                void area(const osmium::Area& area) {
+
+                    /*
+                    * Area:
+                    *      ~from_way() - bool | True := From Way, False := From Relation | Based on id
+                    *      ~orig_id() - i64 | Id of original Way or Relation | Based on id
+                    *      ~num_rings() - pair<size_t x2> | outer, inner~
+                    *      ~is_multipolygon - bool | := num_outer_rings > 1~
+                    *      outer_rings() - iterator
+                    *      inner_rings(oring) - iterator
+                    *      ~envelope - Box~
+                    * Inherited from OSMObject:
+                    *      id() - i64
+                    *      ~is_compatible_to() - bool~
+                    *      ~deleted() - bool~
+                    *      ~visible() - bool | !deleted()~
+                    *      version() - i32
+                    *      changeset() - i32
+                    *      uid() - i32
+                    *      ~user_is_anonymous() - bool~
+                    *      timestamp() - Timestamp
+                    *      user() - char*
+                    *      tags() - TagList
+                    *      get_value_by_key(key) - char*
+                    */
+
+                    if (m_options.use_change_ops) {
+                        open_close_op_tag(area.visible() ? (area.version() == 1 ? operation::op_create : operation::op_modify) : operation::op_delete);
+                    }
+
+                    write_spaces(2);
+                    *m_out += "<area";
+                    write_meta(area);
+
+                    if (area.tags().empty() && area.num_rings().first == 0) {
+                        *m_out += "/>\n";
+                        return;
+                    }
+
+                    *m_out += ">\n";
+                    
+                    for (const auto& oring : area.outer_rings()) 
+                    {
+                        // OuterRing <=> NodeRefList:
+
+                        write_spaces(4); // Why are there 6?
+                        *m_out += "  <outer_ring>\n";
+                        for (const auto& node_ref : oring)
+                        {
+                            write_spaces(6);
+                            *m_out += "  <nd";
+                            write_attribute("ref", node_ref.ref());
+                            if (node_ref.location()) {
+                                detail::append_lat_lon_attributes(*m_out, "lat", "lon", node_ref.location());
+                            }
+                            *m_out += "/>\n";
+                        }
+                        
+                        for (const auto& iring : area.inner_rings(oring))
+                        {
+                            // InnerRing <=> NodeRefList
+
+                            write_spaces(6); // Why are there 8?
+                            *m_out += "  <inner_ring>\n";
+                            for (const auto& node_ref : iring)
+                            {
+                                write_spaces(8);
+                                *m_out += "  <nd";
+                                write_attribute("ref", node_ref.ref());
+                                if (node_ref.location()) {
+                                    detail::append_lat_lon_attributes(*m_out, "lat", "lon", node_ref.location());
+                                }
+                                *m_out += "/>\n";
+                            }
+                            write_spaces(6);
+                            *m_out += "  </inner_ring>\n";
+                        }
+
+                        write_spaces(4); // Those are again 4?
+                        *m_out += "  </outer_ring>\n";
+                    }
+
+                    write_tags(area.tags(), prefix_spaces());
+
+                    write_prefix();
+                    *m_out += "</area>\n";
+                }
+
                 void changeset(const osmium::Changeset& changeset) {
                     *m_out += " <changeset";
 

@@ -239,6 +239,14 @@ namespace osmium {
                                         pbf_primitive_group.skip();
                                     }
                                     break;
+                                case protozero::tag_and_type(OSMFormat::PrimitiveGroup::repeated_Area_areas, protozero::pbf_wire_type::length_delimited):
+                                    if (m_read_types & osmium::osm_entity_bits::area) {
+                                        decode_area(pbf_primitive_group.get_view());
+                                        m_buffer.commit();
+                                    } else {
+                                        pbf_primitive_group.skip();
+                                    }
+                                    break;
                                 default:
                                     pbf_primitive_group.skip();
                             }
@@ -512,6 +520,164 @@ namespace osmium {
                     }
 
                     build_tag_list(builder, keys, vals);
+                }
+
+                void decode_innerring(const data_view& data, osmium::builder::AreaBuilder& area_builder/*, std::stringstream& ss*/) {
+                    osmium::builder::InnerRingBuilder builder{area_builder};
+
+                    varint_range refs;
+                    varint_range lats;
+                    varint_range lons;
+
+                    protozero::pbf_message<OSMFormat::InnerRing> pbf_innerring{data};
+                    while (pbf_innerring.next()) {
+                        switch (pbf_innerring.tag_and_type()) {
+                            case protozero::tag_and_type(OSMFormat::InnerRing::packed_sint64_refs, protozero::pbf_wire_type::length_delimited):
+                                //ss << "      Refs\n";
+                                refs = varint_range{pbf_innerring.get_view()};
+                                break;
+                            case protozero::tag_and_type(OSMFormat::InnerRing::packed_sint64_lat, protozero::pbf_wire_type::length_delimited):
+                                //ss << "      Lats\n";
+                                lats = varint_range{pbf_innerring.get_view()};
+                                break;
+                            case protozero::tag_and_type(OSMFormat::InnerRing::packed_sint64_lon, protozero::pbf_wire_type::length_delimited):
+                                //ss << "      Lons\n";
+                                lons = varint_range{pbf_innerring.get_view()};
+                                break;
+                            default:
+                                //ss << "      Skip\n";
+                                pbf_innerring.skip();
+                        }
+                    }
+
+                    if (!refs.empty()) {
+                        //osmium::builder::WayNodeListBuilder wnl_builder{builder};
+                        osmium::DeltaDecode<int64_t> ref;
+                        osmium::DeltaDecode<int64_t> lon;
+                        osmium::DeltaDecode<int64_t> lat;
+                        while (!refs.empty() && !lons.empty() && !lats.empty()) {
+                            osmium::NodeRef nr;
+                            nr.set_ref(ref.update(refs.next_sint64()));
+                            nr.set_location(osmium::Location{ convert_pbf_lon(lon.update(lons.next_sint64())),
+                                                                convert_pbf_lat(lat.update(lats.next_sint64()))
+                                });
+                            //ss << std::format("      INd: {} - {},{} \n", std::to_string(nr.ref()), std::to_string(nr.lon()), std::to_string(nr.lat()));
+                            builder.add_node_ref(nr);
+                        }
+                    }
+
+                }
+
+                void decode_outerring(const data_view& data, osmium::builder::AreaBuilder& area_builder/*, std::stringstream& ss*/) {
+                    osmium::builder::OuterRingBuilder builder{area_builder};
+
+                    varint_range refs;
+                    varint_range lats;
+                    varint_range lons;
+
+                    std::vector<data_view> irings;
+
+                    protozero::pbf_message<OSMFormat::OuterRing> pbf_outerring{data};
+                    while (pbf_outerring.next()) {
+                        switch (pbf_outerring.tag_and_type()) {
+                            case protozero::tag_and_type(OSMFormat::OuterRing::packed_sint64_refs, protozero::pbf_wire_type::length_delimited):
+                                //ss << "    Refs\n";
+                                refs = varint_range{pbf_outerring.get_view()};
+                                break;
+                            case protozero::tag_and_type(OSMFormat::OuterRing::packed_sint64_lat, protozero::pbf_wire_type::length_delimited):
+                                //ss << "    Lats\n";
+                                lats = varint_range{pbf_outerring.get_view()};
+                                break;
+                            case protozero::tag_and_type(OSMFormat::OuterRing::packed_sint64_lon, protozero::pbf_wire_type::length_delimited):
+                                //ss << "    Lons\n";
+                                lons = varint_range{pbf_outerring.get_view()};
+                                break;
+                            case protozero::tag_and_type(OSMFormat::OuterRing::repeated_InnerRing_innerrings , protozero::pbf_wire_type::length_delimited):
+                                //ss << "    IRing\n";
+                                irings.push_back(pbf_outerring.get_view());
+                                //decode_innerring(pbf_outerring.get_view(), area_builder /*, ss*/);
+                                break;
+                            default:
+                                //ss << "    Skip\n";
+                                pbf_outerring.skip();
+                        }
+                    }
+
+                    if (!refs.empty()) {
+                        //osmium::builder::WayNodeListBuilder wnl_builder{builder};
+                        osmium::DeltaDecode<int64_t> ref;
+                        osmium::DeltaDecode<int64_t> lon;
+                        osmium::DeltaDecode<int64_t> lat;
+                        while (!refs.empty() && !lons.empty() && !lats.empty()) {
+                            osmium::NodeRef nr;
+                            nr.set_ref(ref.update(refs.next_sint64()));
+                            nr.set_location(osmium::Location{   convert_pbf_lon(lon.update(lons.next_sint64())),
+																convert_pbf_lat(lat.update(lats.next_sint64()))
+								});
+                            //ss << std::format("    ONd: {} - {},{} \n", std::to_string(nr.ref()), std::to_string(nr.lon()), std::to_string(nr.lat()));
+                            builder.add_node_ref(nr);
+                        }
+                    }
+
+                    for(auto& view : irings)
+                    {
+                        decode_innerring(view, area_builder);
+                    }
+
+                }
+
+                void decode_area(const data_view& data) {
+
+                    //std::stringstream ss;
+
+                    //ss << "Decode Area\n";
+                    osmium::builder::AreaBuilder builder{m_buffer};
+
+                    varint_range keys;
+                    varint_range vals;
+
+                    osm_string_len_type user{"", 0};
+
+                    protozero::pbf_message<OSMFormat::Area> pbf_area{data};
+                    while (pbf_area.next()) {
+                        switch (pbf_area.tag_and_type()) {
+                            case protozero::tag_and_type(OSMFormat::Area::required_int64_id, protozero::pbf_wire_type::varint):
+                                //ss << "  ID: ";
+                                builder.set_id(pbf_area.get_uint64());
+                                //ss << builder.object().id() << std::endl;
+                                break;
+                            case protozero::tag_and_type(OSMFormat::Area::packed_uint32_keys, protozero::pbf_wire_type::length_delimited):
+                                //ss << "  Keys\n";
+                                keys = varint_range{ pbf_area.get_view()};
+                                break;
+                            case protozero::tag_and_type(OSMFormat::Area::packed_uint32_vals, protozero::pbf_wire_type::length_delimited):
+                                //ss << "  Values\n";
+                                vals = varint_range{ pbf_area.get_view()};
+                                break;
+							case protozero::tag_and_type(OSMFormat::Area::optional_Info_info, protozero::pbf_wire_type::varint):
+								//ss << "  Info\n";
+                                if (m_read_metadata == osmium::io::read_meta::yes) {
+                                    user = decode_info(pbf_area.get_view(), builder.object());
+                                    builder.set_user(user.first, user.second);
+                                } else {
+                                    builder.set_user(user.first, user.second);
+                                    pbf_area.skip();
+                                }
+                                break;
+                            case protozero::tag_and_type(OSMFormat::Area::repeated_OuterRing_outerrings, protozero::pbf_wire_type::length_delimited):
+                                //ss << "  ORing\n";
+                                decode_outerring(pbf_area.get_view(), builder/*, ss*/);
+                                break;
+                            default:
+                                //ss << "  Skip\n";
+                                pbf_area.skip();
+                        }
+                    }
+
+                    //ss << "  Building TagList\n";
+                    build_tag_list(builder, keys, vals);
+
+                    //std::cout << ss.str();
                 }
 
                 void build_tag_list_from_dense_nodes(osmium::builder::NodeBuilder& builder, varint_range& tags) {
