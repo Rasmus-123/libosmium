@@ -33,6 +33,8 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#define OSMIOEXTENSIONS 1
+
 #include <osmium/io/error.hpp>
 #include <osmium/io/file_compression.hpp>
 #include <osmium/io/file_format.hpp>
@@ -202,8 +204,14 @@ namespace osmium {
                 if (suffixes.back() == "pbf") {
                     m_file_format = file_format::pbf;
                     suffixes.pop_back();
+                }else if (suffixes.back() == "pbfe") { //NEWAREA
+                    m_file_format = file_format::pbfe;
+                    suffixes.pop_back();
                 } else if (suffixes.back() == "xml") {
                     m_file_format = file_format::xml;
+                    suffixes.pop_back();
+                }else if (suffixes.back() == "xmle") { //NEWAREA
+                    m_file_format = file_format::xmle;
                     suffixes.pop_back();
                 } else if (suffixes.back() == "opl") {
                     m_file_format = file_format::opl;

@@ -68,7 +68,9 @@ namespace osmium {
                 reserve_space(size);
                 assert(buffer.is_aligned());
                 if (m_parent) {
-                    assert(m_buffer.builder_count() == 1 && "Only one sub-builder can be open at any time.");
+                    //NEWAREA
+                    // Area Builder needs 2 sub-builders (outer+inner ring)
+                    assert(m_buffer.builder_count() <= 2 && "Only one sub-builder can be open at any time.");
                     m_parent->add_size(size);
                 } else {
                     assert(m_buffer.builder_count() == 0 && "Only one builder can be open at any time.");

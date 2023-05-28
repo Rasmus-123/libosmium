@@ -49,7 +49,9 @@ namespace osmium {
             debug     = 6,
             blackhole = 7,
             ids       = 8,
-            last      = 8 // must have the same value as the last real value
+            xmle      = 9, //NEWAREA
+            pbfe      = 10, //NEWAREA
+            last      = 10 // must have the same value as the last real value
         };
 
         enum class read_meta {
@@ -66,8 +68,12 @@ namespace osmium {
             switch (format) {
                 case file_format::xml:
                     return "XML";
+                case file_format::xmle: //NEWAREA
+                    return "XMLE";
                 case file_format::pbf:
                     return "PBF";
+                case file_format::pbfe: //NEWAREA
+                    return "PBFE";
                 case file_format::opl:
                     return "OPL";
                 case file_format::json:
